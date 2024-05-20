@@ -11,45 +11,51 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_squared_error
 
 # Load the dataset
-#train_file_path = "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
-train_file_path = "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
+train_file_path = (
+    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+)
+# train_file_path = "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
 dataset_df = pd.read_csv(train_file_path)
 
 # Drop the 'Id' column
-dataset_df = dataset_df.drop('Id', axis=1)
+dataset_df = dataset_df.drop("Id", axis=1)
 
 # Separate target from features
-X = dataset_df.drop('SalePrice', axis=1)
-y = dataset_df['SalePrice']
+X = dataset_df.drop("SalePrice", axis=1)
+y = dataset_df["SalePrice"]
 
 # Identify numerical and categorical columns
-numerical_cols = X.select_dtypes(include=['int64', 'float64']).columns
-categorical_cols = X.select_dtypes(include=['object']).columns
+numerical_cols = X.select_dtypes(include=["int64", "float64"]).columns
+categorical_cols = X.select_dtypes(include=["object"]).columns
 
 # Preprocessing for numerical data: fill missing values with median and standardize
-numerical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='median')),
-    ('scaler', StandardScaler())
-])
+numerical_transformer = Pipeline(
+    steps=[("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]
+)
 
 # Preprocessing for categorical data: fill missing values with most frequent and one-hot encode
-categorical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='most_frequent')),
-    ('onehot', OneHotEncoder(handle_unknown='ignore'))
-])
+categorical_transformer = Pipeline(
+    steps=[
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+    ]
+)
 
 # Bundle preprocessing for numerical and categorical data
 preprocessor = ColumnTransformer(
     transformers=[
-        ('num', numerical_transformer, numerical_cols),
-        ('cat', categorical_transformer, categorical_cols)
-    ])
+        ("num", numerical_transformer, numerical_cols),
+        ("cat", categorical_transformer, categorical_cols),
+    ]
+)
 
 # Preprocess the data
 X_preprocessed = preprocessor.fit_transform(X)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_preprocessed, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_preprocessed, y, test_size=0.2, random_state=42
+)
 
 # Convert data to PyTorch tensors
 X_train = torch.tensor(X_train.toarray(), dtype=torch.float32)
@@ -93,8 +99,8 @@ for epoch in range(num_epochs):
     loss.backward()
     optimizer.step()
 
-    if (epoch+1) % 10 == 0:
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    if (epoch + 1) % 10 == 0:
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
 
 
 # Evaluate the final model
@@ -102,14 +108,18 @@ model.eval()
 with torch.no_grad():
     predictions = model(X_test)
     final_rmse = torch.sqrt(criterion(predictions, y_test)).item()
-    print(f'Final RMSE on test set: {final_rmse:.4f}')
+    print(f"Final RMSE on test set: {final_rmse:.4f}")
 
 # Create the output file with predictions
-#test_file_path = "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
-test_file_path = "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
+test_file_path = (
+    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+)
+# test_file_path = (
+#     "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
+# )
 test_df = pd.read_csv(test_file_path)
-ids = test_df['Id']
-test_df = test_df.drop('Id', axis=1)
+ids = test_df["Id"]
+test_df = test_df.drop("Id", axis=1)
 
 # Preprocess the test data
 X_test_preprocessed = preprocessor.transform(test_df)
@@ -121,10 +131,7 @@ with torch.no_grad():
     predictions = model(X_test).numpy()
 
 # Create the output DataFrame
-output_df = pd.DataFrame({
-    'Id': ids,
-    'SalePrice': predictions.flatten()
-})
+output_df = pd.DataFrame({"Id": ids, "SalePrice": predictions.flatten()})
 
 # Save the predictions to a CSV file
 output_file_path = "predictions.csv"
