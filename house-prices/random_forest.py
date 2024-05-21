@@ -38,9 +38,16 @@ def remove_outliers(df, column):
 dataset_df = remove_outliers(dataset_df, "GrLivArea")
 dataset_df = remove_outliers(dataset_df, "TotalBsmtSF")
 dataset_df = remove_outliers(dataset_df, "1stFlrSF")
-# dataset_df = remove_outliers(
-#     dataset_df, "SalePrice"
-# )  # Also consider removing outliers in the target variable
+
+dataset_df["TotalSF"] = (
+    dataset_df["TotalBsmtSF"] + dataset_df["1stFlrSF"] + dataset_df["2ndFlrSF"]
+)
+dataset_df["TotalBath"] = (
+    dataset_df["FullBath"]
+    + (0.5 * dataset_df["HalfBath"])
+    + dataset_df["BsmtFullBath"]
+    + (0.5 * dataset_df["BsmtHalfBath"])
+)
 
 
 # Separate target from features
@@ -107,6 +114,15 @@ test_file_path = (
 test_df = pd.read_csv(test_file_path)
 ids = test_df["Id"]
 test_df = test_df.drop("Id", axis=1)
+
+test_df["TotalSF"] = test_df["TotalBsmtSF"] + test_df["1stFlrSF"] + test_df["2ndFlrSF"]
+test_df["TotalBath"] = (
+    test_df["FullBath"]
+    + (0.5 * test_df["HalfBath"])
+    + test_df["BsmtFullBath"]
+    + (0.5 * test_df["BsmtHalfBath"])
+)
+
 
 # Preprocess the test data
 X_test_preprocessed = preprocessor.transform(test_df)

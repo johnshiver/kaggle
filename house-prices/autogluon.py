@@ -3,8 +3,8 @@ from autogluon.tabular import TabularPredictor
 
 # Load the dataset
 train_file_path = (
-    # "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
+    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
 )
 dataset_df = pd.read_csv(train_file_path)
 
@@ -33,6 +33,18 @@ dataset_df = remove_outliers(dataset_df, "GrLivArea")
 dataset_df = remove_outliers(dataset_df, "TotalBsmtSF")
 dataset_df = remove_outliers(dataset_df, "1stFlrSF")
 
+# add custom features
+dataset_df["TotalSF"] = (
+    dataset_df["TotalBsmtSF"] + dataset_df["1stFlrSF"] + dataset_df["2ndFlrSF"]
+)
+dataset_df["TotalBath"] = (
+    dataset_df["FullBath"]
+    + (0.5 * dataset_df["HalfBath"])
+    + dataset_df["BsmtFullBath"]
+    + (0.5 * dataset_df["BsmtHalfBath"])
+)
+
+
 # Separate target from features
 X = dataset_df.drop("SalePrice", axis=1)
 y = dataset_df["SalePrice"]
@@ -51,11 +63,20 @@ print(leaderboard)
 
 # Load the test dataset
 test_file_path = (
-    # "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
+    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
 )
 test_df = pd.read_csv(test_file_path)
 ids = test_df["Id"]
+
+# add custom features back in
+test_df["TotalSF"] = test_df["TotalBsmtSF"] + test_df["1stFlrSF"] + test_df["2ndFlrSF"]
+test_df["TotalBath"] = (
+    test_df["FullBath"]
+    + (0.5 * test_df["HalfBath"])
+    + test_df["BsmtFullBath"]
+    + (0.5 * test_df["BsmtHalfBath"])
+)
 
 # Make predictions on the test dataset
 predictions = predictor.predict(test_df)
