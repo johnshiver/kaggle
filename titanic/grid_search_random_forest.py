@@ -10,8 +10,10 @@ from sklearn.ensemble import (
 from sklearn.metrics import accuracy_score
 
 # Load the dataset
-train_file_path = "/Volumes/HDD2/datasets/titanic/train.csv"
-test_file_path = "/Volumes/HDD2/datasets/titanic/test.csv"
+#train_file_path = "/Volumes/HDD2/datasets/titanic/train.csv"
+#test_file_path = "/Volumes/HDD2/datasets/titanic/test.csv"
+train_file_path = "/media/johnshiver/hdd-fast/titanic/train.csv"
+test_file_path = "/media/johnshiver/hdd-fast/titanic/test.csv"
 
 train_df = pd.read_csv(train_file_path)
 test_df = pd.read_csv(test_file_path)

@@ -10,7 +10,8 @@ from sklearn.metrics import mean_squared_error
 
 # Load the dataset
 train_file_path = (
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
 )
 dataset_df = pd.read_csv(train_file_path)
 
@@ -96,7 +97,8 @@ print(f"Test RMSE: {test_rmse:.4f}")
 
 # Create the output file with predictions
 test_file_path = (
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
 )
 test_df = pd.read_csv(test_file_path)
 ids = test_df["Id"]
