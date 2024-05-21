@@ -10,8 +10,8 @@ from sklearn.metrics import mean_squared_error
 
 # Load the dataset
 train_file_path = (
-    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
-    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
+    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    # "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
 )
 dataset_df = pd.read_csv(train_file_path)
 
@@ -40,9 +40,9 @@ def remove_outliers(df, column):
 dataset_df = remove_outliers(dataset_df, "GrLivArea")
 dataset_df = remove_outliers(dataset_df, "TotalBsmtSF")
 dataset_df = remove_outliers(dataset_df, "1stFlrSF")
-dataset_df = remove_outliers(
-    dataset_df, "SalePrice"
-)  # Also consider removing outliers in the target variable
+# dataset_df = remove_outliers(
+#     dataset_df, "SalePrice"
+# )  # Also consider removing outliers in the target variable
 
 # Separate target from features
 X = dataset_df.drop("SalePrice", axis=1)
@@ -88,10 +88,15 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Define the parameter grid for GridSearchCV
 param_grid = {
     "n_estimators": [100, 200, 300, 400, 500],
-    "max_depth": [None, 10, 20, 30, 40, 50],
+    "max_depth": [10, 20, 30, 40, 50],
     "min_samples_split": [2, 5, 10],
     "min_samples_leaf": [1, 2, 4],
-    "bootstrap": [True, False],
+    "bootstrap": [True],
+    # "n_estimators": [500],
+    # "max_depth": [10],
+    # "min_samples_split": [2],
+    # "min_samples_leaf": [1],
+    # "bootstrap": [True],
 }
 
 # Initialize the Random Forest model
@@ -127,8 +132,8 @@ print(f"Test RMSE: {test_rmse:.4f}")
 
 # Create the output file with predictions
 test_file_path = (
-    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
-    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
+    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    # "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
 )
 test_df = pd.read_csv(test_file_path)
 ids = test_df["Id"]

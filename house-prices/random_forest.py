@@ -38,9 +38,9 @@ def remove_outliers(df, column):
 dataset_df = remove_outliers(dataset_df, "GrLivArea")
 dataset_df = remove_outliers(dataset_df, "TotalBsmtSF")
 dataset_df = remove_outliers(dataset_df, "1stFlrSF")
-dataset_df = remove_outliers(
-    dataset_df, "SalePrice"
-)  # Also consider removing outliers in the target variable
+# dataset_df = remove_outliers(
+#     dataset_df, "SalePrice"
+# )  # Also consider removing outliers in the target variable
 
 
 # Separate target from features
