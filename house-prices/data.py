@@ -9,11 +9,13 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 TRAIN_FILE_PATH = (
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
 )
 
 TEST_FILE_PATH = (
-    "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
 )
 
 

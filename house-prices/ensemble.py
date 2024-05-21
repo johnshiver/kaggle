@@ -20,13 +20,11 @@ class RegressionModel(nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
-        return x
-
+        return x.view(-1)
 
 # Function to create the model
 def create_model(input_dim):
     return RegressionModel(input_dim)
-
 
 # Load the dataset
 dataset_df = load_dataset(TRAIN_FILE_PATH)
@@ -59,17 +57,15 @@ net = NeuralNetRegressor(
 
 # Define the parameter grid
 params = {
-    "lr": [0.01, 0.05, 0.1],
-    "max_epochs": [20, 50, 100],
-    "optimizer__weight_decay": [0, 0.01, 0.001],
+    'lr': [0.01, 0.05, 0.1],
+    'max_epochs': [20, 50, 100],
+    'optimizer__weight_decay': [0, 0.01, 0.001],
     # Note: Adjust 'module__hidden_units' based on your model structure if necessary
     # 'module__hidden_units': [50, 100, 200],
 }
 
 # Perform Grid Search
-gs = GridSearchCV(
-    net, params, refit=True, cv=3, scoring="neg_mean_squared_error", verbose=2
-)
+gs = GridSearchCV(net, params, refit=True, cv=3, scoring='neg_mean_squared_error', verbose=2)
 gs.fit(X_train, y_train)
 
 # Get the best parameters
@@ -82,8 +78,8 @@ best_model = gs.best_estimator_
 best_model.fit(X_train, y_train)
 
 # Make predictions
-y_pred_train = best_model.predict(X_train).astype(np.float32)
-y_pred_test = best_model.predict(X_test).astype(np.float32)
+y_pred_train = best_model.predict(X_train).astype(np.float32).reshape(-1)
+y_pred_test = best_model.predict(X_test).astype(np.float32).reshape(-1)
 
 # Evaluate the model
 train_rmse = np.sqrt(mean_squared_error(y_train, y_pred_train))
@@ -100,7 +96,7 @@ test_df = test_df.drop("Id", axis=1)
 X_test_preprocessed = preprocess_test_data(test_df, preprocessor).astype(np.float32)
 
 # Make predictions using the best model
-test_predictions = best_model.predict(X_test_preprocessed).astype(np.float32)
+test_predictions = best_model.predict(X_test_preprocessed).astype(np.float32).reshape(-1)
 
 # Create the output DataFrame
 output_df = pd.DataFrame({"Id": ids, "SalePrice": test_predictions})
@@ -110,3 +106,4 @@ output_file_path = "pytorch_grid_search_predictions.csv"
 write_predictions(ids, test_predictions, output_file_path)
 
 print(f"Predictions saved to {output_file_path}")
+
