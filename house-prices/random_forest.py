@@ -17,6 +17,14 @@ dataset_df = pd.read_csv(train_file_path)
 # Drop the 'Id' column
 dataset_df = dataset_df.drop("Id", axis=1)
 
+# drop sparse columns
+dataset_df = dataset_df.drop("LotFrontage", axis=1)
+dataset_df = dataset_df.drop("Alley", axis=1)
+dataset_df = dataset_df.drop("FireplaceQu", axis=1)
+dataset_df = dataset_df.drop("PoolQC", axis=1)
+dataset_df = dataset_df.drop("Fence", axis=1)
+dataset_df = dataset_df.drop("MiscFeature", axis=1)
+
 # Separate target from features
 X = dataset_df.drop("SalePrice", axis=1)
 y = dataset_df["SalePrice"]

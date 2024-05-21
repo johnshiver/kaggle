@@ -10,13 +10,21 @@ from sklearn.metrics import mean_squared_error
 
 # Load the dataset
 train_file_path = (
-    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
     "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
 )
 dataset_df = pd.read_csv(train_file_path)
 
 # Drop the 'Id' column
 dataset_df = dataset_df.drop("Id", axis=1)
+
+# drop sparse columns
+dataset_df = dataset_df.drop("LotFrontage", axis=1)
+dataset_df = dataset_df.drop("Alley", axis=1)
+dataset_df = dataset_df.drop("FireplaceQu", axis=1)
+dataset_df = dataset_df.drop("PoolQC", axis=1)
+dataset_df = dataset_df.drop("Fence", axis=1)
+dataset_df = dataset_df.drop("MiscFeature", axis=1)
 
 # Separate target from features
 X = dataset_df.drop("SalePrice", axis=1)
@@ -97,7 +105,7 @@ print(f"Test RMSE: {test_rmse:.4f}")
 
 # Create the output file with predictions
 test_file_path = (
-    #"/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
+    # "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/test.csv"
     "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/test.csv"
 )
 test_df = pd.read_csv(test_file_path)
