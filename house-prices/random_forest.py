@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -18,12 +18,30 @@ dataset_df = pd.read_csv(train_file_path)
 dataset_df = dataset_df.drop("Id", axis=1)
 
 # drop sparse columns
-dataset_df = dataset_df.drop("LotFrontage", axis=1)
-dataset_df = dataset_df.drop("Alley", axis=1)
-dataset_df = dataset_df.drop("FireplaceQu", axis=1)
-dataset_df = dataset_df.drop("PoolQC", axis=1)
-dataset_df = dataset_df.drop("Fence", axis=1)
-dataset_df = dataset_df.drop("MiscFeature", axis=1)
+sparse_cols = ["LotFrontage", "Alley", "FireplaceQu", "PoolQC", "Fence", "MiscFeature"]
+dataset_df = dataset_df.drop(columns=sparse_cols)
+
+# Outlier treatment: Remove outliers based on GrLivArea (as an example)
+# dataset_df = dataset_df[dataset_df["GrLivArea"] < 4500]
+
+# Function to remove outliers based on IQR
+def remove_outliers(df, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
+
+
+# Remove outliers for specific columns
+dataset_df = remove_outliers(dataset_df, "GrLivArea")
+dataset_df = remove_outliers(dataset_df, "TotalBsmtSF")
+dataset_df = remove_outliers(dataset_df, "1stFlrSF")
+dataset_df = remove_outliers(
+    dataset_df, "SalePrice"
+)  # Also consider removing outliers in the target variable
+
 
 # Separate target from features
 X = dataset_df.drop("SalePrice", axis=1)
@@ -35,7 +53,11 @@ categorical_cols = X.select_dtypes(include=["object"]).columns
 
 # Preprocessing for numerical data: fill missing values with median and standardize
 numerical_transformer = Pipeline(
-    steps=[("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]
+    steps=[
+        ("imputer", SimpleImputer(strategy="median")),
+        ("poly", PolynomialFeatures(degree=2, include_bias=False)),
+        ("scaler", StandardScaler()),
+    ]
 )
 
 # Preprocessing for categorical data: fill missing values with most frequent and one-hot encode

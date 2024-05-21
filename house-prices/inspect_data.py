@@ -22,8 +22,14 @@ def missing_values_heatmap(df):
 
 
 def correlation_matrix(df):
+    # Select only numeric columns
+    numeric_df = df.select_dtypes(include=[np.number])
+
+    # Compute the correlation matrix
+    corr_matrix = numeric_df.corr()
+
+    # Plot the heatmap
     plt.figure(figsize=(12, 8))
-    corr_matrix = df.corr()
     sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
     plt.title("Correlation Matrix")
     plt.show()
@@ -71,7 +77,10 @@ def feature_importance_plot(X, y):
 
 
 def main():
-    train_file_path = "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
+    train_file_path = (
+        # "/media/johnshiver/hdd-fast/house-prices-advanced-regression-techniques/train.csv"
+        "/Volumes/HDD2/datasets/house-prices-advanced-regression-techniques/train.csv"
+    )
     df = load_dataset(train_file_path)
 
     # Drop the 'Id' column
