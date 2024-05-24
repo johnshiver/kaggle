@@ -28,6 +28,10 @@ def load_dataset(train_file_path):
         "PoolQC",
         "Fence",
         "MiscFeature",
+        "PoolArea",
+        "MasVnrType",
+        "LotShape",
+        "Street",
     ]
     df = df.drop(columns=sparse_cols)
     return df

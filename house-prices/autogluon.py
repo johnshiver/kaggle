@@ -12,7 +12,20 @@ dataset_df = pd.read_csv(train_file_path)
 dataset_df = dataset_df.drop("Id", axis=1)
 
 # drop sparse columns
-sparse_cols = ["LotFrontage", "Alley", "FireplaceQu", "PoolQC", "Fence", "MiscFeature"]
+#sparse_cols = ["LotFrontage", "Alley", "FireplaceQu", "PoolQC", "Fence", "MiscFeature"]
+sparse_cols = [
+    "LotFrontage",
+    "Alley",
+    "FireplaceQu",
+    "PoolQC",
+    "Fence",
+    "MiscFeature",
+    # "MiscVal",
+    "PoolArea",
+    "MasVnrType",
+    "LotShape",
+    "Street",
+]
 dataset_df = dataset_df.drop(columns=sparse_cols)
 
 # Outlier treatment: Remove outliers based on GrLivArea (as an example)
