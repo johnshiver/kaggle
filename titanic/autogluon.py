@@ -29,7 +29,7 @@ output_df = pd.DataFrame(
 )
 
 # Save the predictions to a CSV file
-output_file_path = "titanic_predictions.csv"
+output_file_path = "autogluon_titanic_predictions.csv"
 output_df.to_csv(output_file_path, index=False)
 
 print(f"Predictions saved to {output_file_path}")

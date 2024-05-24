@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 
 # Load the dataset
@@ -56,8 +56,8 @@ X_train_preprocessed = preprocessor.fit_transform(X_train)
 # Preprocess the testing data
 X_test_preprocessed = preprocessor.transform(X_test)
 
-# Initialize the Random Forest model
-model = RandomForestClassifier(n_estimators=512, n_jobs=-1, random_state=42)
+# Initialize the Gradient Boosting model
+model = GradientBoostingClassifier(n_estimators=512, random_state=42)
 
 # Train the model
 model.fit(X_train_preprocessed, y_train)
@@ -75,7 +75,7 @@ print(f"Test Accuracy: {test_accuracy:.4f}")
 # Preprocess the test data
 X_test_preprocessed_final = preprocessor.transform(test_df)
 
-# Make predictions using the Random Forest model
+# Make predictions using the Gradient Boosting model
 test_predictions = model.predict(X_test_preprocessed_final)
 
 # Create the output DataFrame
