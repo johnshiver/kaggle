@@ -27,9 +27,9 @@ class EarthquakeDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.X[idx], dtype=torch.float32), torch.tensor(
-            self.y[idx], dtype=torch.float32
-        )
+        return torch.tensor(self.X[idx], dtype=torch.float32).unsqueeze(
+            0
+        ), torch.tensor(self.y[idx], dtype=torch.float32)
 
 
 class CNNLSTM(nn.Module):
@@ -54,7 +54,6 @@ class CNNLSTM(nn.Module):
         self.fc = nn.Linear(lstm_hidden_size, 1)
 
     def forward(self, x):
-        x = x.unsqueeze(1)  # Add channel dimension
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
         x = self.pool(x)
@@ -79,7 +78,9 @@ def train_model(model, train_loader, criterion, optimizer, epochs=10):
 
 
 # Load and preprocess the training data
-train_data = pd.read_csv("~/datasets/LANL-Earthquake-Prediction/train.csv")
+train_data = pd.read_csv(
+    "~/datasets/LANL-Earthquake-Prediction/train.csv", nrows=3000000
+)
 acoustic_data = train_data["acoustic_data"].values.reshape(-1, 1)
 time_to_failure = train_data["time_to_failure"].values[
     ::150000
@@ -89,12 +90,11 @@ time_to_failure = train_data["time_to_failure"].values[
 X_train = preprocess_data(acoustic_data)
 y_train = time_to_failure
 
-
 train_dataset = EarthquakeDataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
 # Model, criterion, and optimizer
-model = CNNLSTM(input_dim=X_train.shape[2])
+model = CNNLSTM(input_dim=X_train.shape[1])
 criterion = nn.L1Loss()  # MAE
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 

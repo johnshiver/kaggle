@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def load_data(file_path):
@@ -54,6 +55,76 @@ def column_info(df):
         print(f"  Null values: {df[column].isnull().sum()}")
 
 
+def visualize_data(df):
+    """
+    Visualize the acoustic_data and time_to_failure columns.
+
+    :param df: DataFrame containing the data
+    :return: None
+    """
+    plt.figure(figsize=(15, 6))
+
+    plt.subplot(2, 1, 1)
+    plt.plot(df["acoustic_data"][:50000])
+    plt.title("Acoustic Data (first 50,000 samples)")
+    plt.xlabel("Sample index")
+    plt.ylabel("Acoustic Data")
+
+    plt.subplot(2, 1, 2)
+    plt.plot(df["time_to_failure"][:50000])
+    plt.title("Time to Failure (first 50,000 samples)")
+    plt.xlabel("Sample index")
+    plt.ylabel("Time to Failure")
+
+    plt.tight_layout()
+    plt.show()
+
+
+def summary_statistics(df):
+    """
+    Compute and print summary statistics for acoustic_data and time_to_failure columns.
+
+    :param df: DataFrame containing the data
+    :return: None
+    """
+    stats = {
+        "acoustic_data": {
+            "mean": df["acoustic_data"].mean(),
+            "median": df["acoustic_data"].median(),
+            "variance": df["acoustic_data"].var(),
+        },
+        "time_to_failure": {
+            "mean": df["time_to_failure"].mean(),
+            "median": df["time_to_failure"].median(),
+            "variance": df["time_to_failure"].var(),
+        },
+    }
+
+    print("Summary Statistics:")
+    for key, value in stats.items():
+        print(f"{key}:")
+        for stat, val in value.items():
+            print(f"  {stat}: {val}")
+
+
+def correlation_analysis(df):
+    """
+    Perform correlation analysis between acoustic_data and time_to_failure.
+
+    :param df: DataFrame containing the data
+    :return: None
+    """
+    correlation = df["acoustic_data"].corr(df["time_to_failure"])
+    print(f"\nCorrelation between acoustic_data and time_to_failure: {correlation}")
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(df["acoustic_data"][:50000], df["time_to_failure"][:50000], alpha=0.1)
+    plt.title("Correlation between Acoustic Data and Time to Failure")
+    plt.xlabel("Acoustic Data")
+    plt.ylabel("Time to Failure")
+    plt.show()
+
+
 # Load the data
 file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
 data = load_data(file_path)
@@ -63,3 +134,12 @@ inspect_data(data)
 
 # Display detailed column information
 column_info(data)
+
+# Visualize the data
+visualize_data(data)
+
+# Compute summary statistics
+summary_statistics(data)
+
+# Perform correlation analysis
+correlation_analysis(data)
