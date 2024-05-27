@@ -50,17 +50,19 @@ class LSTMModel(nn.Module):
         return out
 
 
-# Prepare the data
+# Load and sample the data
 file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
 data = load_data(file_path)
-sequence_length = 150000
+sample_size = 1000000  # Adjust this based on your memory and time constraints
+data_sample = data.sample(n=sample_size, random_state=42)
 
-dataset = EarthquakeDataset(data, sequence_length)
+# Prepare the data
+sequence_length = 150000
+dataset = EarthquakeDataset(data_sample, sequence_length)
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4)
 
 # Initialize the model, loss function, and optimizer
 model = LSTMModel().cuda()
-# model = LSTMModel()
 criterion = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -85,4 +87,4 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss/len(dataloader)}")
 
 # Save the model
-torch.save(model.state_dict(), "")
+torch.save(model.state_dict(), "lstm_earthquake_model.pth")
