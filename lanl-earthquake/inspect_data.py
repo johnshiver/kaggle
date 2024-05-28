@@ -124,22 +124,49 @@ def correlation_analysis(df):
     plt.ylabel("Time to Failure")
     plt.show()
 
+def aggregate_data(data, num_rows=50000, precision=3):
+    """
+    Aggregate the data by rounded time_to_failure and compute the average acoustic_data and count.
+
+    :param file_path: Path to the CSV file containing the data.
+    :param num_rows: Number of rows to analyze (default: 50000).
+    :param precision: Decimal places to round time_to_failure for grouping (default: 3).
+    :return: DataFrame with aggregated data.
+    """
+    data_subset = data.iloc[:num_rows]
+
+    # Round the time_to_failure values to the specified precision
+    data_subset['rounded_time_to_failure'] = data_subset['time_to_failure'].round(precision)
+
+    aggregated_data = data_subset.groupby('rounded_time_to_failure').agg(
+        avg_acoustic_data=('acoustic_data', 'mean'),
+        count=('acoustic_data', 'size')
+    ).reset_index()
+
+    return aggregated_data
+
 
 # Load the data
-file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
+#file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
+
+#file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
+file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
 
 # Perform basic introspection
 inspect_data(data)
 
 # Display detailed column information
-column_info(data)
+#column_info(data)
 
 # Visualize the data
-visualize_data(data)
+#visualize_data(data)
 
 # Compute summary statistics
-summary_statistics(data)
+#summary_statistics(data)
 
 # Perform correlation analysis
-correlation_analysis(data)
+#correlation_analysis(data)
+
+#aggregated_data = aggregate_data(data)
+#print(aggregated_data.head(10))
