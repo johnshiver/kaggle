@@ -68,14 +68,16 @@ def visualize_data(df, threshold=0.01):
 
     # Acoustic Data
     plt.subplot(2, 1, 1)
-    plt.plot(df["acoustic_data"][:50000])
+    plt.plot(df["acoustic_data"][:50000000])
+    # plt.plot(df["acoustic_data"])
     plt.title("Acoustic Data (first 50,000 samples)")
     plt.xlabel("Sample index")
     plt.ylabel("Acoustic Data")
 
     # Time to Failure
     plt.subplot(2, 1, 2)
-    plt.plot(df["time_to_failure"][:50000])
+    plt.plot(df["time_to_failure"][:50000000])
+    # plt.plot(df["time_to_failure"])
     plt.title("Time to Failure (first 50,000 samples)")
     plt.xlabel("Sample index")
     plt.ylabel("Time to Failure")
@@ -207,7 +209,8 @@ def aggregate_data(data, num_rows=150000, precision=3):
 
 
 # Load the data
-file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
+# file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
+file_path = "LANL-Earthquake-Prediction/train.csv"
 
 # file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
 # file_path = "lanl-earthquake/train.csv"
@@ -220,8 +223,8 @@ data = load_data(file_path)
 # column_info(data)
 
 # Visualize the data
-# visualize_data(data)
-find_earthquake_events(data)
+visualize_data(data)
+# find_earthquake_events(data)
 
 # Compute summary statistics
 # summary_statistics(data)
