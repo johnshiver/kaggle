@@ -109,9 +109,8 @@ def predict_from_test_directory(test_dir, sequence_length=4096):
             file_path = os.path.join(test_dir, file_name)
             data = load_data(file_path)
             prediction = predict_time_to_failure(model, data, sequence_length)
-            for pred in prediction:
-                results.append([file_name, pred])
-                print(f"{file_name}, {pred}")
+            print(f"{file_name}, {prediction[0]}")
+            results.append([file_name.rstrip(".csv"), prediction[0]])
     return results
 
 
@@ -126,7 +125,7 @@ predictions = predict_from_test_directory(test_dir)
 
 # Save the predictions to a CSV file
 output_file = "predictions_2.csv"
-predictions_df = pd.DataFrame(predictions, columns=["file_name", "prediction"])
+predictions_df = pd.DataFrame(predictions, columns=["seg_id", "time_to_failure"])
 predictions_df.to_csv(output_file, index=False)
 
 print(f"Predictions saved to {output_file}")
