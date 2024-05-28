@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import StandardScaler
 
 
-
 # Load the data
 def load_data(file_path):
     return pd.read_csv(file_path)
@@ -17,28 +16,59 @@ class EarthquakeDataset(Dataset):
     def __init__(self, data, sequence_length=4096):
         self.data = data
         self.sequence_length = sequence_length
-        #self.scaler = StandardScaler()
-        #scaled_data = self.scaler.fit_transform(self.data["acoustic_data"].values.reshape(-1, 1)).flatten().astype('float64')
-        #self.data.loc[:, "acoustic_data"] = scaled_data
 
+        # Standardize the acoustic data
+        scaler = StandardScaler()
+        acoustic_data_scaled = scaler.fit_transform(
+            data["acoustic_data"].values.reshape(-1, 1)
+        ).flatten()
+
+        # Update the data with the scaled values
+        self.data = data.copy()
+        self.data["acoustic_data"] = acoustic_data_scaled
 
     def __len__(self):
         return len(self.data) // self.sequence_length
 
     def __getitem__(self, idx):
         start_idx = idx * self.sequence_length
-        x = self.data["acoustic_data"].iloc[start_idx:start_idx + self.sequence_length].values.astype('float32')
-        y = self.data["time_to_failure"].iloc[start_idx + self.sequence_length - 1].astype('float32')
+        x = (
+            self.data["acoustic_data"]
+            .iloc[start_idx : start_idx + self.sequence_length]
+            .values.astype("float32")
+        )
+        y = (
+            self.data["time_to_failure"]
+            .iloc[start_idx + self.sequence_length - 1]
+            .astype("float32")
+        )
         return x, y
+
 
 # Define the LSTM model
 class LSTMModel(nn.Module):
-    def __init__(self, input_size=1, hidden_layer_size=50, output_size=1, num_layers=2):
+    def __init__(
+        self,
+        input_size=1,
+        hidden_layer_size=128,
+        output_size=1,
+        num_layers=3,
+        dropout=0.2,
+        bidirectional=False,
+    ):
         super(LSTMModel, self).__init__()
         self.hidden_layer_size = hidden_layer_size
         self.num_layers = num_layers
 
-        self.lstm = nn.LSTM(input_size, hidden_layer_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_layer_size,
+            num_layers,
+            batch_first=True,
+            dropout=dropout,
+            bidirectional=bidirectional,
+        )
+        # self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(hidden_layer_size, output_size)
 
     def forward(self, x):
@@ -50,24 +80,25 @@ class LSTMModel(nn.Module):
         )
 
         out, _ = self.lstm(x, (h0, c0))
+        # out = self.dropout(out)
         out = self.linear(out[:, -1, :])
         return out
 
 
 # Load and sample the data
 # file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
-#file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
+# file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
 file_path = "lanl-earthquake/train.csv"
 
 data = load_data(file_path)
-#sample_size = 1000000  # Adjust this based on your memory and time constraints
-#data_sample = data.sample(n=sample_size, random_state=42)
+# sample_size = 1000000  # Adjust this based on your memory and time constraints
+# data_sample = data.sample(n=sample_size, random_state=42)
 
-#sequence_length = 4096
-sequence_length = 150000
-start_idx = 0
-end_idx = sequence_length*2 # Adjust based on your memory and time constraints
-#data_sample = data.iloc[start_idx:end_idx]
+sequence_length = 4096
+# sequence_length = 150000
+# start_idx = 0
+# end_idx = sequence_length * 2  # Adjust based on your memory and time constraints
+# data_sample = data.iloc[start_idx:end_idx]
 data_sample = data
 
 # Debug: Print the shape of the sampled data
@@ -86,18 +117,18 @@ num_batches = len(dataloader)
 print(f"Number of batches per epoch: {num_batches}")
 
 # init model
-#input_size = 1  # Single feature input
-#hidden_size = 64  # Increase hidden units
-#num_layers = 2  # Increase number of layers
-#output_size = 1
-#model = LSTMModel(input_size, hidden_size, num_layers, output_size).cuda()
+# input_size = 1  # Single feature input
+# hidden_size = 64  # Increase hidden units
+# num_layers = 2  # Increase number of layers
+# output_size = 1
+# model = LSTMModel(input_size, hidden_size, num_layers, output_size).cuda()
 model = LSTMModel().cuda()
 
 criterion = nn.L1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Train the model
-num_epochs = 25
+num_epochs = 10
 
 for epoch in range(num_epochs):
     model.train()
@@ -114,8 +145,12 @@ for epoch in range(num_epochs):
 
         epoch_loss += loss.item()
 
-        if (batch_idx + 1) % 100 == 0:  # Adjust the frequency of progress statements as needed
-            print(f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}")
+        if (
+            batch_idx + 1
+        ) % 100 == 0:  # Adjust the frequency of progress statements as needed
+            print(
+                f"Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx+1}/{len(dataloader)}], Loss: {loss.item():.4f}"
+            )
 
     print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss/len(dataloader)}")
 
