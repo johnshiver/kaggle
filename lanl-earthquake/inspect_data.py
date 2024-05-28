@@ -55,29 +55,83 @@ def column_info(df):
         print(f"  Null values: {df[column].isnull().sum()}")
 
 
-def visualize_data(df):
+def visualize_data(df, threshold=0.01):
     """
     Visualize the acoustic_data and time_to_failure columns.
+    Denote where an earthquake likely occurred with vertical lines.
 
     :param df: DataFrame containing the data
+    :param threshold: Threshold for time_to_failure to denote earthquake occurrence
     :return: None
     """
     plt.figure(figsize=(15, 6))
 
+    # Acoustic Data
     plt.subplot(2, 1, 1)
     plt.plot(df["acoustic_data"][:50000])
     plt.title("Acoustic Data (first 50,000 samples)")
     plt.xlabel("Sample index")
     plt.ylabel("Acoustic Data")
 
+    # Time to Failure
     plt.subplot(2, 1, 2)
     plt.plot(df["time_to_failure"][:50000])
     plt.title("Time to Failure (first 50,000 samples)")
     plt.xlabel("Sample index")
     plt.ylabel("Time to Failure")
 
+    # Find where time_to_failure is below the threshold and draw vertical lines
+    for i, ttf in enumerate(df["time_to_failure"][:50000]):
+        if ttf < threshold:
+            plt.axvline(x=i, color="r", linestyle="--")
+
     plt.tight_layout()
     plt.show()
+
+
+# def visualize_data(df):
+#     """
+#     Visualize the acoustic_data and time_to_failure columns.
+
+#     :param df: DataFrame containing the data
+#     :return: None
+#     """
+#     plt.figure(figsize=(15, 6))
+
+#     plt.subplot(2, 1, 1)
+#     plt.plot(df["acoustic_data"][:50000])
+#     plt.title("Acoustic Data (first 50,000 samples)")
+#     plt.xlabel("Sample index")
+#     plt.ylabel("Acoustic Data")
+
+#     plt.subplot(2, 1, 2)
+#     plt.plot(df["time_to_failure"][:50000])
+#     plt.title("Time to Failure (first 50,000 samples)")
+#     plt.xlabel("Sample index")
+#     plt.ylabel("Time to Failure")
+
+#     plt.tight_layout()
+#     plt.show()
+
+
+def find_earthquake_events(df, threshold=0.01):
+    """
+    Print out indices where time_to_failure is near 0.
+
+    :param df: DataFrame containing the data
+    :param threshold: Threshold for time_to_failure to denote earthquake occurrence
+    :return: None
+    """
+    earthquake_indices = []
+    for i, ttf in enumerate(df["time_to_failure"]):
+        if ttf < threshold:
+            earthquake_indices.append(i)
+
+    print(
+        f"Earthquake likely occurred at the following indices (time_to_failure < {threshold}):"
+    )
+    for idx in earthquake_indices:
+        print(f"Index: {idx}")
 
 
 def summary_statistics(df):
@@ -124,7 +178,8 @@ def correlation_analysis(df):
     plt.ylabel("Time to Failure")
     plt.show()
 
-def aggregate_data(data, num_rows=50000, precision=3):
+
+def aggregate_data(data, num_rows=150000, precision=3):
     """
     Aggregate the data by rounded time_to_failure and compute the average acoustic_data and count.
 
@@ -136,37 +191,43 @@ def aggregate_data(data, num_rows=50000, precision=3):
     data_subset = data.iloc[:num_rows]
 
     # Round the time_to_failure values to the specified precision
-    data_subset['rounded_time_to_failure'] = data_subset['time_to_failure'].round(precision)
+    data_subset["rounded_time_to_failure"] = data_subset["time_to_failure"].round(
+        precision
+    )
 
-    aggregated_data = data_subset.groupby('rounded_time_to_failure').agg(
-        avg_acoustic_data=('acoustic_data', 'mean'),
-        count=('acoustic_data', 'size')
-    ).reset_index()
+    aggregated_data = (
+        data_subset.groupby("rounded_time_to_failure")
+        .agg(
+            avg_acoustic_data=("acoustic_data", "mean"), count=("acoustic_data", "size")
+        )
+        .reset_index()
+    )
 
     return aggregated_data
 
 
 # Load the data
-#file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
+file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
 
-#file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
-file_path = "lanl-earthquake/train.csv"
+# file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
+# file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
 
 # Perform basic introspection
-inspect_data(data)
+# inspect_data(data)
 
 # Display detailed column information
-#column_info(data)
+# column_info(data)
 
 # Visualize the data
-#visualize_data(data)
+# visualize_data(data)
+find_earthquake_events(data)
 
 # Compute summary statistics
-#summary_statistics(data)
+# summary_statistics(data)
 
 # Perform correlation analysis
-#correlation_analysis(data)
+# correlation_analysis(data)
 
-#aggregated_data = aggregate_data(data)
-#print(aggregated_data.head(10))
+# aggregated_data = aggregate_data(data)
+# print(aggregated_data.head(10))
