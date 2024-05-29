@@ -174,15 +174,18 @@ def evaluate_model(model, dataloader, criterion):
     return val_loss
 
 
+# Example Usage:
+
 # Load and process the data
 file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
 downsample_factor = 10  # Adjust this factor as needed
 downsampled_data = downsample_data(data, downsample_factor)
 
-# Split data into training and validation sets
-train_data = downsampled_data.sample(frac=0.8, random_state=42)
-val_data = downsampled_data.drop(train_data.index)
+# Sequentially split data into training (80%) and validation (20%) sets
+split_idx = int(len(downsampled_data) * 0.8)
+train_data = downsampled_data.iloc[:split_idx]
+val_data = downsampled_data.iloc[split_idx:]
 
 # Define sequence length and stride
 sequence_length = 150000
@@ -192,7 +195,9 @@ stride = 50000
 train_dataset = EarthquakeDataset(train_data, sequence_length, stride)
 val_dataset = EarthquakeDataset(val_data, sequence_length, stride)
 
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=12)
+train_dataloader = DataLoader(
+    train_dataset, batch_size=4, shuffle=False, num_workers=12
+)
 val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=False, num_workers=12)
 
 # Initialize model, criterion, optimizer, and scheduler
