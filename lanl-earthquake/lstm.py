@@ -11,11 +11,18 @@ def load_data(file_path):
     return pd.read_csv(file_path)
 
 
-# Custom Dataset class
+# Downsample the data by taking the mean of every x rows
+def downsample_data(df, factor):
+    downsampled_df = df.groupby(df.index // factor).mean()
+    return downsampled_df
+
+
+# Custom Dataset class with overlapping windows
 class EarthquakeDataset(Dataset):
-    def __init__(self, data, sequence_length=150000):
+    def __init__(self, data, sequence_length=150000, stride=50000):
         self.data = data
         self.sequence_length = sequence_length
+        self.stride = stride
 
         # Standardize the acoustic data
         scaler = StandardScaler()
@@ -28,10 +35,10 @@ class EarthquakeDataset(Dataset):
         self.data["acoustic_data"] = acoustic_data_scaled
 
     def __len__(self):
-        return len(self.data) // self.sequence_length
+        return (len(self.data) - self.sequence_length) // self.stride + 1
 
     def __getitem__(self, idx):
-        start_idx = idx * self.sequence_length
+        start_idx = idx * self.stride
         x = (
             self.data["acoustic_data"]
             .iloc[start_idx : start_idx + self.sequence_length]
@@ -68,7 +75,6 @@ class LSTMModel(nn.Module):
             dropout=dropout,
             bidirectional=bidirectional,
         )
-        # self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(hidden_layer_size, output_size)
 
     def forward(self, x):
@@ -80,32 +86,23 @@ class LSTMModel(nn.Module):
         )
 
         out, _ = self.lstm(x, (h0, c0))
-        # out = self.dropout(out)
         out = self.linear(out[:, -1, :])
         return out
 
 
 # Load and sample the data
-# file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
-# file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
 file_path = "lanl-earthquake/train.csv"
 
 data = load_data(file_path)
-# sample_size = 1000000  # Adjust this based on your memory and time constraints
-# data_sample = data.sample(n=sample_size, random_state=42)
 
-# sequence_length = 4096
+# Downsample the data
+downsample_factor = 10  # Example: downsample by taking the mean of every 10 rows
+downsampled_data = downsample_data(data, downsample_factor)
+
+# Create the dataset and dataloader
 sequence_length = 150000
-# start_idx = 0
-# end_idx = sequence_length * 2  # Adjust based on your memory and time constraints
-# data_sample = data.iloc[start_idx:end_idx]
-data_sample = data
-
-# Debug: Print the shape of the sampled data
-print(f"Sampled data shape: {data_sample.shape}")
-
-# Prepare the dataset and dataloader
-dataset = EarthquakeDataset(data_sample, sequence_length)
+stride = 50000
+dataset = EarthquakeDataset(downsampled_data, sequence_length, stride)
 
 # Debug: Print the length of the dataset
 print(f"Dataset length: {len(dataset)}")
@@ -116,12 +113,7 @@ dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=12)
 num_batches = len(dataloader)
 print(f"Number of batches per epoch: {num_batches}")
 
-# init model
-# input_size = 1  # Single feature input
-# hidden_size = 64  # Increase hidden units
-# num_layers = 2  # Increase number of layers
-# output_size = 1
-# model = LSTMModel(input_size, hidden_size, num_layers, output_size).cuda()
+# Initialize model
 model = LSTMModel().cuda()
 
 criterion = nn.L1Loss()
@@ -155,6 +147,5 @@ for epoch in range(num_epochs):
 
     print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss/len(dataloader)}")
 
-
 # Save the model
-torch.save(model.state_dict(), "lstm_earthquake_model_3.pth")
+torch.save(model.state_dict(), "lstm_earthquake_model_downsampling_1.pth")
