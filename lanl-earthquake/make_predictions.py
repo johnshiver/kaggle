@@ -14,7 +14,7 @@ def load_data(file_path):
 
 # Custom Dataset class
 class EarthquakeDataset(Dataset):
-    def __init__(self, data, sequence_length=4096):
+    def __init__(self, data, sequence_length=150000):
         self.data = data
         self.sequence_length = sequence_length
 
@@ -38,12 +38,7 @@ class EarthquakeDataset(Dataset):
             .iloc[start_idx : start_idx + self.sequence_length]
             .values.astype("float32")
         )
-        y = (
-            self.data["time_to_failure"]
-            .iloc[start_idx + self.sequence_length - 1]
-            .astype("float32")
-        )
-        return x, y
+        return x
 
 
 # Define the LSTM model
@@ -86,7 +81,7 @@ class LSTMModel(nn.Module):
         return out
 
 
-def predict_time_to_failure(model, data, sequence_length=4096):
+def predict_time_to_failure(model, data, sequence_length=150000):
     model.eval()
     dataset = EarthquakeDataset(data, sequence_length)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
@@ -109,8 +104,9 @@ def predict_from_test_directory(test_dir, sequence_length=150000):
             file_path = os.path.join(test_dir, file_name)
             data = load_data(file_path)
             prediction = predict_time_to_failure(model, data, sequence_length)
-            print(f"{file_name}, {prediction[0]}")
-            results.append([file_name.rstrip(".csv"), prediction[0]])
+            seg_id = os.path.splitext(file_name)[0]
+            print(f"{seg_id}, {prediction[0]}")
+            results.append([seg_id, prediction[0]])
     return results
 
 
