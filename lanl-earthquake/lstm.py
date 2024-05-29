@@ -13,7 +13,7 @@ def load_data(file_path):
 
 # Custom Dataset class
 class EarthquakeDataset(Dataset):
-    def __init__(self, data, sequence_length=4096):
+    def __init__(self, data, sequence_length=150000):
         self.data = data
         self.sequence_length = sequence_length
 
@@ -94,8 +94,8 @@ data = load_data(file_path)
 # sample_size = 1000000  # Adjust this based on your memory and time constraints
 # data_sample = data.sample(n=sample_size, random_state=42)
 
-sequence_length = 4096
-# sequence_length = 150000
+# sequence_length = 4096
+sequence_length = 150000
 # start_idx = 0
 # end_idx = sequence_length * 2  # Adjust based on your memory and time constraints
 # data_sample = data.iloc[start_idx:end_idx]
@@ -141,6 +141,7 @@ for epoch in range(num_epochs):
         y_pred = model(X_batch)
         loss = criterion(y_pred, y_batch)
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
 
         epoch_loss += loss.item()
@@ -156,4 +157,4 @@ for epoch in range(num_epochs):
 
 
 # Save the model
-torch.save(model.state_dict(), "lstm_earthquake_model.pth")
+torch.save(model.state_dict(), "lstm_earthquake_model_3.pth")

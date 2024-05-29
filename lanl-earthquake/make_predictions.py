@@ -102,7 +102,7 @@ def predict_time_to_failure(model, data, sequence_length=4096):
 
 
 # Function to process all CSV files in the test directory and make predictions
-def predict_from_test_directory(test_dir, sequence_length=4096):
+def predict_from_test_directory(test_dir, sequence_length=150000):
     results = []
     for file_name in os.listdir(test_dir):
         if file_name.endswith(".csv"):
