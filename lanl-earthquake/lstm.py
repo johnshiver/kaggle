@@ -9,7 +9,6 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import time
 
-
 # Load the data
 def load_data(file_path):
     return pd.read_csv(file_path)
@@ -26,7 +25,7 @@ def downsample_data(df, factor):
     df_time = (
         df["time_to_failure"]
         .groupby(np.arange(len(df)) // factor)
-        .min()
+        .max()
         .reset_index(drop=True)
     )
     return pd.DataFrame({"acoustic_data": df_acoustic, "time_to_failure": df_time})
@@ -183,7 +182,6 @@ def get_earthquake_indices(df, threshold=0.01):
     :param threshold: Threshold for time_to_failure to denote earthquake occurrence
     :return: List of indices where earthquakes occurred
     """
-    df = downsample_data(df, 5)
     earthquake_indices = []
 
     # Find where time_to_failure is below the threshold
@@ -200,12 +198,16 @@ def get_earthquake_indices(df, threshold=0.01):
 file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
 
-downsample_factor = 10  # Adjust this factor as needed
-downsampled_data = downsample_data(data, 20)
-
+data = downsample_data(data, 5)
+# Get earthquake indices
 earthquake_indices = get_earthquake_indices(data)
+print(earthquake_indices)
+print(len(earthquake_indices))
 
-# split data along earthquake lines
+
+exit
+
+# Split data based on earthquake indices
 segments = []
 start_idx = 0
 for idx in earthquake_indices:
@@ -213,28 +215,37 @@ for idx in earthquake_indices:
     start_idx = idx
 segments.append(data.iloc[start_idx:])
 
-# remove the last one, doesnt look like much data
-segments.pop()
-
-# Prepare training and validation sets
+# Divide segments into training and validation sets
 train_segments = segments[: int(len(segments) * 0.8)]
 val_segments = segments[int(len(segments) * 0.8) :]
-
-train_data = pd.concat(train_segments).reset_index(drop=True)
-val_data = pd.concat(val_segments).reset_index(drop=True)
 
 # Define sequence length and stride
 sequence_length = 150000
 stride = 50000
 
-# Create datasets and dataloaders
-train_dataset = EarthquakeDataset(train_data, sequence_length, stride)
-val_dataset = EarthquakeDataset(val_data, sequence_length, stride)
+# Function to create datasets from segments
+def create_dataset(segments, sequence_length, stride):
+    datasets = [
+        EarthquakeDataset(segment, sequence_length, stride) for segment in segments
+    ]
+    return datasets
 
+
+# Create datasets for training and validation sets
+train_datasets = create_dataset(train_segments, sequence_length, stride)
+val_datasets = create_dataset(val_segments, sequence_length, stride)
+
+# Combine all training and validation datasets
+combined_train_dataset = torch.utils.data.ConcatDataset(train_datasets)
+combined_val_dataset = torch.utils.data.ConcatDataset(val_datasets)
+
+# Create dataloaders for the combined datasets
 train_dataloader = DataLoader(
-    train_dataset, batch_size=4, shuffle=False, num_workers=12
+    combined_train_dataset, batch_size=4, shuffle=False, num_workers=12
 )
-val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=False, num_workers=12)
+val_dataloader = DataLoader(
+    combined_val_dataset, batch_size=4, shuffle=False, num_workers=12
+)
 
 # Initialize model, criterion, optimizer, and scheduler
 model = LSTMModel().cuda()
