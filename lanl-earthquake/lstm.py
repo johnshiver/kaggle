@@ -192,7 +192,29 @@ def get_earthquake_indices(df, threshold=0.01):
     return earthquake_indices
 
 
-# Example Usage:
+def get_max_indices(earthquake_indices):
+    """
+    Get the maximum index of each contiguous segment of indices.
+
+    :param earthquake_indices: List of indices where time_to_failure is below the threshold
+    :return: List of maximum indices for each contiguous segment
+    """
+    if not earthquake_indices:
+        return []
+
+    max_indices = []
+    current_max = earthquake_indices[0]
+
+    for i in range(1, len(earthquake_indices)):
+        if earthquake_indices[i] != earthquake_indices[i - 1] + 1:
+            max_indices.append(current_max)
+            current_max = earthquake_indices[i]
+        else:
+            current_max = earthquake_indices[i]
+
+    max_indices.append(current_max)
+    return max_indices
+
 
 # Load and process the data
 file_path = "lanl-earthquake/train.csv"
@@ -200,12 +222,8 @@ data = load_data(file_path)
 
 data = downsample_data(data, 5)
 # Get earthquake indices
-earthquake_indices = get_earthquake_indices(data)
-print(earthquake_indices)
-print(len(earthquake_indices))
+earthquake_indices = get_max_indices(get_earthquake_indices(data))
 
-
-exit
 
 # Split data based on earthquake indices
 segments = []
@@ -214,6 +232,9 @@ for idx in earthquake_indices:
     segments.append(data.iloc[start_idx:idx])
     start_idx = idx
 segments.append(data.iloc[start_idx:])
+
+# last segment doesnt look useful
+segments.pop()
 
 # Divide segments into training and validation sets
 train_segments = segments[: int(len(segments) * 0.8)]
