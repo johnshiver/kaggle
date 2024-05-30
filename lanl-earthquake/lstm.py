@@ -82,19 +82,32 @@ class LSTMModel(nn.Module):
             dropout=dropout,
             bidirectional=bidirectional,
         )
-        self.linear = nn.Linear(hidden_layer_size, output_size)
+        self.linear = nn.Linear(
+            hidden_layer_size * 2 if bidirectional else hidden_layer_size, output_size
+        )
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_layer_size).to(
-            x.device
-        )
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_layer_size).to(
-            x.device
-        )
+        h0 = torch.zeros(
+            self.num_layers * 2 if self.lstm.bidirectional else self.num_layers,
+            x.size(0),
+            self.hidden_layer_size,
+        ).to(x.device)
+        c0 = torch.zeros(
+            self.num_layers * 2 if self.lstm.bidirectional else self.num_layers,
+            x.size(0),
+            self.hidden_layer_size,
+        ).to(x.device)
 
         out, _ = self.lstm(x, (h0, c0))
         out = self.linear(out[:, -1, :])
         return out
+
+
+def weights_init(m):
+    if isinstance(m, nn.Linear) or isinstance(m, nn.LSTM):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0)
 
 
 def train_model(
@@ -109,7 +122,6 @@ def train_model(
 ):
     best_val_loss = float("inf")
     early_stopping_counter = 0
-    scaler = torch.cuda.amp.GradScaler()  # For mixed precision training
 
     for epoch in range(num_epochs):
         model.train()
@@ -123,15 +135,12 @@ def train_model(
             y_batch = y_batch.unsqueeze(-1).cuda()  # Move to GPU
 
             optimizer.zero_grad()
-            with torch.cuda.amp.autocast():  # Mixed precision training
-                y_pred = model(X_batch)
-                loss = criterion(y_pred, y_batch)
+            y_pred = model(X_batch)
+            loss = criterion(y_pred, y_batch)
+            loss.backward()
 
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            scaler.step(optimizer)
-            scaler.update()
+            # nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
 
             train_loss += loss.item()
 
@@ -270,6 +279,8 @@ val_dataloader = DataLoader(
 
 # Initialize model, criterion, optimizer, and scheduler
 model = LSTMModel().cuda()
+model.apply(weights_init)
+
 criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = ReduceLROnPlateau(optimizer, "min", patience=3, factor=0.1)
@@ -282,5 +293,5 @@ train_model(
     criterion,
     optimizer,
     scheduler,
-    num_epochs=10,
+    num_epochs=50,
 )
