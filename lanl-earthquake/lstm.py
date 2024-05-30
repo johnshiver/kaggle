@@ -25,10 +25,19 @@ def downsample_data(df, factor):
     df_time = (
         df["time_to_failure"]
         .groupby(np.arange(len(df)) // factor)
-        .max()
+        .min()
         .reset_index(drop=True)
     )
     return pd.DataFrame({"acoustic_data": df_acoustic, "time_to_failure": df_time})
+
+
+# Feature Engineering
+def create_features(df):
+    df["moving_avg"] = df["acoustic_data"].rolling(window=50).mean()
+    df["moving_std"] = df["acoustic_data"].rolling(window=50).std()
+    df["exp_moving_avg"] = df["acoustic_data"].ewm(span=50).mean()
+    df = df.fillna(0)
+    return df
 
 
 # Custom Dataset class with overlapping windows
@@ -39,14 +48,14 @@ class EarthquakeDataset(Dataset):
         self.stride = stride
 
         # Standardize the acoustic data
-        scaler = StandardScaler()
-        acoustic_data_scaled = scaler.fit_transform(
-            data["acoustic_data"].values.reshape(-1, 1)
-        ).flatten()
+        # scaler = StandardScaler()
+        # acoustic_data_scaled = scaler.fit_transform(
+        #     data["acoustic_data"].values.reshape(-1, 1)
+        # ).flatten()
 
-        # Update the data with the scaled values
-        self.data = data.copy()
-        self.data["acoustic_data"] = acoustic_data_scaled
+        # # Update the data with the scaled values
+        # self.data = data.copy()
+        # self.data["acoustic_data"] = acoustic_data_scaled
 
     def __len__(self):
         return (len(self.data) - self.sequence_length) // self.stride + 1
@@ -54,7 +63,12 @@ class EarthquakeDataset(Dataset):
     def __getitem__(self, idx):
         start_idx = idx * self.stride
         end_idx = start_idx + self.sequence_length
-        x = self.data["acoustic_data"].iloc[start_idx:end_idx].values.astype("float32")
+        # x = self.data["acoustic_data"].iloc[start_idx:end_idx].values.astype("float32")
+        x = (
+            self.data[["acoustic_data", "moving_avg", "moving_std", "exp_moving_avg"]]
+            .iloc[start_idx:end_idx]
+            .values.astype("float32")
+        )
         y = self.data["time_to_failure"].iloc[end_idx - 1].astype("float32")
         return x, y
 
@@ -64,9 +78,9 @@ class LSTMModel(nn.Module):
     def __init__(
         self,
         input_size=1,
-        hidden_layer_size=128,
+        hidden_layer_size=64,
         output_size=1,
-        num_layers=3,
+        num_layers=2,
         dropout=0.2,
         bidirectional=False,
     ):
@@ -146,7 +160,6 @@ def train_model(
 
         train_loss /= len(train_dataloader)
         val_loss = evaluate_model(model, val_dataloader, criterion)
-
         scheduler.step(val_loss)
 
         print(
@@ -230,6 +243,7 @@ file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
 
 data = downsample_data(data, 5)
+data = create_features(data)
 # Get earthquake indices
 earthquake_indices = get_max_indices(get_earthquake_indices(data))
 
@@ -271,19 +285,19 @@ combined_val_dataset = torch.utils.data.ConcatDataset(val_datasets)
 
 # Create dataloaders for the combined datasets
 train_dataloader = DataLoader(
-    combined_train_dataset, batch_size=4, shuffle=False, num_workers=12
+    combined_train_dataset, batch_size=3, shuffle=False, num_workers=12
 )
 val_dataloader = DataLoader(
-    combined_val_dataset, batch_size=4, shuffle=False, num_workers=12
+    combined_val_dataset, batch_size=3, shuffle=False, num_workers=12
 )
 
 # Initialize model, criterion, optimizer, and scheduler
 model = LSTMModel().cuda()
-model.apply(weights_init)
+# model.apply(weights_init)
 
 criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-scheduler = ReduceLROnPlateau(optimizer, "min", patience=3, factor=0.1)
+scheduler = ReduceLROnPlateau(optimizer, "min", patience=3, factor=0.5)
 
 # Train the model
 train_model(
