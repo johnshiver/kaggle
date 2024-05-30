@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def load_data(file_path):
@@ -55,6 +56,22 @@ def column_info(df):
         print(f"  Null values: {df[column].isnull().sum()}")
 
 
+def downsample_data(df, factor):
+    df_acoustic = (
+        df["acoustic_data"]
+        .groupby(np.arange(len(df)) // factor)
+        .mean()
+        .reset_index(drop=True)
+    )
+    df_time = (
+        df["time_to_failure"]
+        .groupby(np.arange(len(df)) // factor)
+        .max()
+        .reset_index(drop=True)
+    )
+    return pd.DataFrame({"acoustic_data": df_acoustic, "time_to_failure": df_time})
+
+
 def visualize_data(df, threshold=0.01):
     """
     Visualize the acoustic_data and time_to_failure columns.
@@ -64,30 +81,34 @@ def visualize_data(df, threshold=0.01):
     :param threshold: Threshold for time_to_failure to denote earthquake occurrence
     :return: None
     """
+    factor = 20
+    df = downsample_data(df, factor)
+
     plt.figure(figsize=(15, 6))
 
     # Acoustic Data
     plt.subplot(2, 1, 1)
-    plt.plot(df["acoustic_data"][:50000000])
+    plt.plot(df["acoustic_data"])
     # plt.plot(df["acoustic_data"])
-    plt.title("Acoustic Data (first 50,000 samples)")
+    plt.title(f"Acoustic Data (downsample {factor})")
     plt.xlabel("Sample index")
     plt.ylabel("Acoustic Data")
 
     # Time to Failure
     plt.subplot(2, 1, 2)
-    plt.plot(df["time_to_failure"][:50000000])
+    plt.plot(df["time_to_failure"])
     # plt.plot(df["time_to_failure"])
-    plt.title("Time to Failure (first 50,000 samples)")
+    plt.title(f"Time to Failure (downsample {factor})")
     plt.xlabel("Sample index")
     plt.ylabel("Time to Failure")
 
     # Find where time_to_failure is below the threshold and draw vertical lines
-    for i, ttf in enumerate(df["time_to_failure"][:50000]):
+    for i, ttf in enumerate(df["time_to_failure"]):
         if ttf < threshold:
             plt.axvline(x=i, color="r", linestyle="--")
 
     plt.tight_layout()
+    plt.savefig(f"dataset_visual_downsize_{factor}")
     plt.show()
 
 

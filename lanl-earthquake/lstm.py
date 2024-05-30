@@ -26,7 +26,7 @@ def downsample_data(df, factor):
     df_time = (
         df["time_to_failure"]
         .groupby(np.arange(len(df)) // factor)
-        .max()
+        .min()
         .reset_index(drop=True)
     )
     return pd.DataFrame({"acoustic_data": df_acoustic, "time_to_failure": df_time})
@@ -174,18 +174,54 @@ def evaluate_model(model, dataloader, criterion):
     return val_loss
 
 
+# New function to get earthquake indices
+def get_earthquake_indices(df, threshold=0.01):
+    """
+    Get the indices where the time_to_failure is below the given threshold.
+
+    :param df: DataFrame containing the data
+    :param threshold: Threshold for time_to_failure to denote earthquake occurrence
+    :return: List of indices where earthquakes occurred
+    """
+    df = downsample_data(df, 5)
+    earthquake_indices = []
+
+    # Find where time_to_failure is below the threshold
+    for i, ttf in enumerate(df["time_to_failure"]):
+        if ttf < threshold:
+            earthquake_indices.append(i)
+
+    return earthquake_indices
+
+
 # Example Usage:
 
 # Load and process the data
 file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
-downsample_factor = 10  # Adjust this factor as needed
-downsampled_data = downsample_data(data, downsample_factor)
 
-# Sequentially split data into training (80%) and validation (20%) sets
-split_idx = int(len(downsampled_data) * 0.8)
-train_data = downsampled_data.iloc[:split_idx]
-val_data = downsampled_data.iloc[split_idx:]
+downsample_factor = 10  # Adjust this factor as needed
+downsampled_data = downsample_data(data, 20)
+
+earthquake_indices = get_earthquake_indices(data)
+
+# split data along earthquake lines
+segments = []
+start_idx = 0
+for idx in earthquake_indices:
+    segments.append(data.iloc[start_idx:idx])
+    start_idx = idx
+segments.append(data.iloc[start_idx:])
+
+# remove the last one, doesnt look like much data
+segments.pop()
+
+# Prepare training and validation sets
+train_segments = segments[: int(len(segments) * 0.8)]
+val_segments = segments[int(len(segments) * 0.8) :]
+
+train_data = pd.concat(train_segments).reset_index(drop=True)
+val_data = pd.concat(val_segments).reset_index(drop=True)
 
 # Define sequence length and stride
 sequence_length = 150000
