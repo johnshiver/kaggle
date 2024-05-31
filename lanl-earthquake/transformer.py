@@ -1,13 +1,50 @@
-import os
-import pandas as pd
-import numpy as np
 import torch
 import torch.nn as nn
+import numpy as np
+import pandas as pd
+import time
 from torch.utils.data import DataLoader, Dataset
 from sklearn.preprocessing import StandardScaler
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import time
+
+
+# Define the Transformer model
+class TransformerModel(nn.Module):
+    def __init__(
+        self,
+        input_size=4,
+        d_model=64,
+        nhead=8,
+        num_encoder_layers=3,
+        dim_feedforward=256,
+        dropout=0.1,
+    ):
+        super(TransformerModel, self).__init__()
+        self.d_model = d_model
+        self.input_linear = nn.Linear(input_size, d_model)
+        self.pos_encoder = nn.Embedding(5000, d_model)
+        encoder_layers = nn.TransformerEncoderLayer(
+            d_model, nhead, dim_feedforward, dropout, batch_first=True
+        )
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layers, num_encoder_layers
+        )
+        self.decoder = nn.Linear(d_model, 1)
+
+    def forward(self, x):
+        x = self.input_linear(x)
+        seq_len, batch_size, _ = x.size()
+        position = (
+            torch.arange(seq_len, device=x.device)
+            .unsqueeze(1)
+            .expand(seq_len, batch_size)
+        )
+        x = x + self.pos_encoder(position)
+        x = self.transformer_encoder(x)
+        x = self.decoder(x.mean(dim=1))  # Change to mean(dim=1) for batch_first=True
+        return x
+
 
 # Load the data
 def load_data(file_path):
@@ -60,43 +97,6 @@ class EarthquakeDataset(Dataset):
         )
         y = self.data["time_to_failure"].iloc[end_idx - 1].astype("float32")
         return x, y
-
-
-# Define the Transformer model
-class TransformerModel(nn.Module):
-    def __init__(
-        self,
-        input_size=4,
-        d_model=64,
-        nhead=8,
-        num_encoder_layers=3,
-        dim_feedforward=256,
-        dropout=0.1,
-    ):
-        super(TransformerModel, self).__init__()
-        self.d_model = d_model
-        self.input_linear = nn.Linear(input_size, d_model)
-        self.pos_encoder = nn.Embedding(5000, d_model)
-        encoder_layers = nn.TransformerEncoderLayer(
-            d_model, nhead, dim_feedforward, dropout
-        )
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layers, num_encoder_layers
-        )
-        self.decoder = nn.Linear(d_model, 1)
-
-    def forward(self, x):
-        x = self.input_linear(x)
-        seq_len, batch_size, _ = x.size()
-        position = (
-            torch.arange(seq_len, device=x.device)
-            .unsqueeze(1)
-            .expand(seq_len, batch_size)
-        )
-        x = x + self.pos_encoder(position)
-        x = self.transformer_encoder(x)
-        x = self.decoder(x.mean(dim=0))
-        return x
 
 
 def weights_init(m):
@@ -174,32 +174,16 @@ def evaluate_model(model, dataloader, criterion):
     return val_loss
 
 
-# New function to get earthquake indices
+# Get earthquake indices
 def get_earthquake_indices(df, threshold=0.01):
-    """
-    Get the indices where the time_to_failure is below the given threshold.
-
-    :param df: DataFrame containing the data
-    :param threshold: Threshold for time_to_failure to denote earthquake occurrence
-    :return: List of indices where earthquakes occurred
-    """
     earthquake_indices = []
-
-    # Find where time_to_failure is below the threshold
     for i, ttf in enumerate(df["time_to_failure"]):
         if ttf < threshold:
             earthquake_indices.append(i)
-
     return earthquake_indices
 
 
 def get_max_indices(earthquake_indices):
-    """
-    Get the maximum index of each contiguous segment of indices.
-
-    :param earthquake_indices: List of indices where time_to_failure is below the threshold
-    :return: List of maximum indices for each contiguous segment
-    """
     if not earthquake_indices:
         return []
 
@@ -223,9 +207,9 @@ data = load_data(file_path)
 
 data = downsample_data(data, 5)
 data = create_features(data)
+
 # Get earthquake indices
 earthquake_indices = get_max_indices(get_earthquake_indices(data))
-
 
 # Split data based on earthquake indices
 segments = []
