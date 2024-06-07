@@ -2,6 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tsfresh import extract_features, select_features
+from tsfresh.utilities.dataframe_functions import impute
+
 
 def load_data(file_path):
     """
@@ -81,14 +84,14 @@ def visualize_data(df, threshold=0.01):
     :param threshold: Threshold for time_to_failure to denote earthquake occurrence
     :return: None
     """
-    factor = 20
+    factor = 50
     df = downsample_data(df, factor)
 
     plt.figure(figsize=(15, 6))
 
     # Acoustic Data
     plt.subplot(2, 1, 1)
-    plt.plot(df["acoustic_data"])
+    plt.plot(df["acoustic_data"][:150000])
     # plt.plot(df["acoustic_data"])
     plt.title(f"Acoustic Data (downsample {factor})")
     plt.xlabel("Sample index")
@@ -96,19 +99,46 @@ def visualize_data(df, threshold=0.01):
 
     # Time to Failure
     plt.subplot(2, 1, 2)
-    plt.plot(df["time_to_failure"])
+    plt.plot(df["time_to_failure"][:150000])
     # plt.plot(df["time_to_failure"])
     plt.title(f"Time to Failure (downsample {factor})")
     plt.xlabel("Sample index")
     plt.ylabel("Time to Failure")
 
     # Find where time_to_failure is below the threshold and draw vertical lines
-    for i, ttf in enumerate(df["time_to_failure"]):
+    for i, ttf in enumerate(df["time_to_failure"][:150000]):
         if ttf < threshold:
             plt.axvline(x=i, color="r", linestyle="--")
 
     plt.tight_layout()
-    plt.savefig(f"dataset_visual_downsize_{factor}")
+    # plt.savefig(f"dataset_visual_downsize_{factor}")
+    plt.show()
+
+
+def visualize_test_data(df, threshold=0.01):
+    """
+    Visualize the acoustic_data and time_to_failure columns.
+    Denote where an earthquake likely occurred with vertical lines.
+
+    :param df: DataFrame containing the data
+    :param threshold: Threshold for time_to_failure to denote earthquake occurrence
+    :return: None
+    """
+    # factor = 50
+    # df = downsample_data(df, factor)
+
+    plt.figure(figsize=(15, 6))
+
+    # Acoustic Data
+    plt.subplot(2, 1, 1)
+    plt.plot(df["acoustic_data"])
+    # plt.plot(df["acoustic_data"])
+    plt.title(f"Acoustic Test Data")
+    plt.xlabel("Sample index")
+    plt.ylabel("Acoustic Data")
+
+    plt.tight_layout()
+    # plt.savefig(f"dataset_visual_downsize_{factor}")
     plt.show()
 
 
@@ -228,11 +258,31 @@ def aggregate_data(data, num_rows=150000, precision=3):
 
     return aggregated_data
 
+def create_features(df):
+    df['id'] = np.arange(len(df)) // 150000
+    extracted_features = extract_features(df, column_id='id', column_sort=None, column_value='acoustic_data')
+    impute(extracted_features)
+    df_features = df[['id', 'time_to_failure']].drop_duplicates().merge(extracted_features, left_on='id', right_index=True)
+    df_features = df_features.drop(columns=['id'])
+    return df_features
+
+def feature_relevance(df, y):
+    """
+    Select relevant features using TSFresh's select_features method.
+
+    :param df: DataFrame containing the features
+    :param y: Target variable
+    :return: DataFrame with relevant features
+    """
+    relevant_features = select_features(df.drop(columns=['time_to_failure']), y)
+    print("Selected Relevant Features:")
+    print(relevant_features.head())
+    return relevant_features
+
 
 # Load the data
 # file_path = "~/datasets/LANL-Earthquake-Prediction/train.csv"
 file_path = "LANL-Earthquake-Prediction/train.csv"
-
 # file_path = "/media/johnshiver/hdd-fast/lanl-earthquake/train.csv"
 # file_path = "lanl-earthquake/train.csv"
 data = load_data(file_path)
@@ -244,7 +294,7 @@ data = load_data(file_path)
 # column_info(data)
 
 # Visualize the data
-visualize_data(data)
+# visualize_data(data)
 # find_earthquake_events(data)
 
 # Compute summary statistics
@@ -255,3 +305,17 @@ visualize_data(data)
 
 # aggregated_data = aggregate_data(data)
 # print(aggregated_data.head(10))
+
+
+# test_file_path = "LANL-Earthquake-Prediction/test/seg_929ded.csv"
+# test_data = load_data(test_file_path)
+# visualize_test_data(test_data)
+
+data = create_features(data)
+
+# Assume y is a binary classification target variable for simplicity
+y = (data['time_to_failure'] < 0.01).astype(int)
+
+# Select relevant features
+relevant_features = feature_relevance(data, y)
+print(relevant_features)
