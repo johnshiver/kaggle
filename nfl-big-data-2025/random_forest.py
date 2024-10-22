@@ -1,12 +1,16 @@
+from statistics import LinearRegression
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 
 
 # Load the dataset
@@ -51,37 +55,37 @@ pre_snap_columns = [
     "game_seconds_remaining",
     "goal_to_go",  # Indicates if it's a goal-to-go situation
     # Team information
-    "home_team",
-    "away_team",
-    "posteam",  # Possession team
-    "defteam",  # Defensive team
-    "posteam_type",  # Home or away
+    # "home_team",
+    # "away_team",
+    # "posteam",  # Possession team
+    # "defteam",  # Defensive team
+    # "posteam_type",  # Home or away
     "side_of_field",  # Which team's side of the field
     "home_timeouts_remaining",
     "away_timeouts_remaining",
-    "posteam_timeouts_remaining",
-    "defteam_timeouts_remaining",
+    # "posteam_timeouts_remaining",
+    # "defteam_timeouts_remaining",
     # Formation and personnel
     "offenseFormation",
-    "offense_personnel",
-    "defense_personnel",
-    "defenders_in_box",
-    "number_of_pass_rushers",
-    "receiverAlignment",
-    "n_offense",  # Number of offensive players
-    "n_defense",  # Number of defensive players
-    "shotgun",  # Indicates if the play is from shotgun formation
+    # "offense_personnel",
+    # "defense_personnel",
+    # "defenders_in_box",
+    # "number_of_pass_rushers",
+    # "receiverAlignment",
+    # "n_offense",  # Number of offensive players
+    # "n_defense",  # Number of defensive players
+    # "shotgun",  # Indicates if the play is from shotgun formation
     "no_huddle",  # Indicates if the offense is in no-huddle
-    "playAction",  # Indicates if play-action is planned
-    "pff_runConceptPrimary",
-    "pff_runConceptSecondary",
-    "pff_runPassOption",
-    "pff_passCoverage",
-    "pff_manZone",
-    "defense_man_zone_type",
-    "defense_coverage_type",
+    # "playAction",  # Indicates if play-action is planned
+    # "pff_runConceptPrimary",
+    # "pff_runConceptSecondary",
+    # "pff_runPassOption",
+    # "pff_passCoverage",
+    # "pff_manZone",
+    # "defense_man_zone_type",
+    # "defense_coverage_type",
     # Situational factors
-    "playClockAtSnap",  # Play clock time at snap
+    # "playClockAtSnap",  # Play clock time at snap
     "drive",  # Current drive number
     "time",  # Time of play
     "home_opening_kickoff",  # Indicates if home team is receiving opening kickoff
@@ -94,22 +98,22 @@ pre_snap_columns = [
     "stadium_id",
     "game_stadium",
     # Probabilities and expected values
-    "preSnapHomeTeamWinProbability",
-    "preSnapVisitorTeamWinProbability",
-    "expectedPoints",
-    "no_score_prob",
-    "fg_prob",
-    "safety_prob",
-    "td_prob",
-    "extra_point_prob",
-    "two_point_conversion_prob",
-    "xpass",  # Expected pass probability
-    "cp",  # Completion probability
-    "cpoe",  # Completion percentage over expected
+    # "preSnapHomeTeamWinProbability",
+    # "preSnapVisitorTeamWinProbability",
+    # "expectedPoints",
+    # "no_score_prob",
+    # "fg_prob",
+    # "safety_prob",
+    # "td_prob",
+    # "extra_point_prob",
+    # "two_point_conversion_prob",
+    # "xpass",  # Expected pass probability
+    # "cp",  # Completion probability
+    # "cpoe",  # Completion percentage over expected
     # Coaching and strategy
-    "home_coach",
-    "away_coach",
-    "playAction",  # Whether play-action is planned
+    # "home_coach",
+    # "away_coach",
+    # "playAction",  # Whether play-action is planned
 ]
 
 X = filtered_data[pre_snap_columns]
@@ -146,7 +150,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 clf = Pipeline(
     steps=[
         ("preprocessor", preprocessor),
-        ("classifier", RandomForestClassifier(random_state=42)),
+        # ("classifier", RandomForestClassifier(random_state=25)),
+        ("classifier", GradientBoostingClassifier(random_state=42)),
+        # ("classifier", LogisticRegression(max_iter=10000)),
     ]
 )
 
@@ -157,3 +163,38 @@ y_pred = clf.predict(X_test)
 
 print(classification_report(y_test, y_pred))
 print("Accuracy:", accuracy_score(y_test, y_pred))
+
+
+cross_val_scores = cross_val_score(clf, X, y, cv=5)
+print("Cross-validated accuracy: %.2f" % cross_val_scores.mean())
+
+
+# voting classifier code
+
+# voting_clf = VotingClassifier(
+#     estimators=[
+#         ("rf", RandomForestClassifier(random_state=42)),
+#         (
+#             "xgb",
+#             XGBClassifier(
+#                 use_label_encoder=True, eval_metric="mlogloss", random_state=42
+#             ),
+#         ),
+#         ("lr", LogisticRegression(max_iter=1000)),
+#     ],
+#     voting="soft",
+# )
+
+# clf = Pipeline(steps=[("preprocessor", preprocessor), ("classifier", voting_clf)])
+
+# # Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(
+#     X, y, test_size=0.2, random_state=42
+# )
+
+# # Train the model
+# clf.fit(X_train, y_train)
+
+# # Predict and evaluate
+# y_pred = clf.predict(X_test)
+# print(classification_report(y_test, y_pred))
